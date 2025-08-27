@@ -1,0 +1,3 @@
+{
+  "instructions": "Create 5 GitHub issues in the current shadow-clone repository for improvements that GitHub Copilot coding agent can work on. The issues should be: 1) Add GitHub App configuration and webhook handling for automatic event processing, 2) Create a React-based dashboard to replace the basic HTML dashboard, 3) Implement comprehensive error handling and logging throughout the application, 4) Add unit tests for all agent classes and services, 5) Create API rate limiting and security middleware. Make each issue detailed with acceptance criteria and implementation guidance so GitHub Copilot can work on them effectively."
+}
