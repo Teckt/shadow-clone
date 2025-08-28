@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+
+{% block title %}MCP GitHub Integration Demo - Copilot Manager{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="display-6 mb-4">
+            <i class="bi bi-robot"></i>
+            MCP GitHub Copilot Integration Demo
+        </h1>
+        <p class="lead">
+            This page demonstrates how the Copilot Manager integrates with GitHub's Copilot Coding Agent using MCP (Model Context Protocol) tools.
+        </p>
+    </div>
+</div>
+
+<!-- Live Demo Section -->
+<div class="row mb-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-play-circle"></i>
+                    Live Demo: Assign Issue to Copilot
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="assignForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="repository" class="form-label">Select Repository</label>
+                                <select class="form-control" id="repository" required>
+                                    <option value="">Select a repository...</option>
+                                    {% for repo in repositories %}
+                                    <option value="{{ repo.owner }}/{{ repo.name }}" data-owner="{{ repo.owner }}" data-name="{{ repo.name }}">
+                                        {{ repo.owner }}/{{ repo.name }}
+                                        {% if repo.copilot_enabled %}
+                                        <span class="badge badge-success">✓ Copilot</span>
+                                        {% endif %}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                {% if not repositories %}
+                                <small class="text-muted">No repositories found. <a href="{{ url_for('repositories') }}">Add repositories</a> first.</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="task_title" class="form-label">Task Title</label>
+                                <input type="text" class="form-control" id="task_title" placeholder="e.g., Implement user authentication" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="task_description" class="form-label">Task Description</label>
+                        <textarea class="form-control" id="task_description" rows="4" placeholder="Detailed description of what Copilot should implement..." required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="auto_create_issue" checked>
+                            <label class="form-check-label" for="auto_create_issue">
+                                Automatically create GitHub issue
+                            </label>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-robot"></i> Create Task & Assign to Copilot
+                    </button>
+                </form>
+                
+                <div id="result" class="mt-3" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="bi bi-info-circle"></i>
+                    How it Works
+                </h6>
+            </div>
+            <div class="card-body">
+                <ol class="small">
+                    <li>You provide repository and issue details</li>
+                    <li>Our Flask app calls the MCP GitHub tool</li>
+                    <li>The tool assigns the issue to <code>copilot-swe-agent</code></li>
+                    <li>Copilot starts working on the issue</li>
+                    <li>You can track progress in real-time</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MCP Tools Reference -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-tools"></i>
+                    Available MCP GitHub Tools
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="bi bi-robot"></i> Copilot Assignment</h6>
+                        <ul class="list-unstyled">
+                            <li><code>mcp_github_assign_copilot_to_issue</code></li>
+                            <li><code>mcp_github_create_pull_request_with_copilot</code></li>
+                        </ul>
+                        
+                        <h6><i class="bi bi-git"></i> PR Management</h6>
+                        <ul class="list-unstyled">
+                            <li><code>mcp_github_create_and_submit_pull_request_review</code></li>
+                            <li><code>mcp_github_get_issue_comments</code></li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="bi bi-file-earmark-code"></i> Repository Operations</h6>
+                        <ul class="list-unstyled">
+                            <li><code>mcp_github_get_file_contents</code></li>
+                            <li><code>mcp_github_list_commits</code></li>
+                        </ul>
+                        
+                        <h6><i class="bi bi-search"></i> Information Retrieval</h6>
+                        <ul class="list-unstyled">
+                            <li><code>mcp_github_get_commit</code></li>
+                            <li><code>mcp_github_get_latest_release</code></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Integration Architecture -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-diagram-3"></i>
+                    Integration Architecture
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-2">
+                        <div class="border rounded p-3 mb-2 bg-light">
+                            <i class="bi bi-person fs-4"></i>
+                            <div class="small fw-bold">User</div>
+                        </div>
+                    </div>
+                    <div class="col-md-1 d-flex align-items-center justify-content-center">
+                        <i class="bi bi-arrow-right fs-4"></i>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="border rounded p-3 mb-2 bg-primary text-white">
+                            <i class="bi bi-gear fs-4"></i>
+                            <div class="small fw-bold">Flask App</div>
+                        </div>
+                    </div>
+                    <div class="col-md-1 d-flex align-items-center justify-content-center">
+                        <i class="bi bi-arrow-right fs-4"></i>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="border rounded p-3 mb-2 bg-info text-white">
+                            <i class="bi bi-puzzle fs-4"></i>
+                            <div class="small fw-bold">MCP Tools</div>
+                        </div>
+                    </div>
+                    <div class="col-md-1 d-flex align-items-center justify-content-center">
+                        <i class="bi bi-arrow-right fs-4"></i>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="border rounded p-3 mb-2 bg-success text-white">
+                            <i class="bi bi-github fs-4"></i>
+                            <div class="small fw-bold">GitHub API</div>
+                        </div>
+                    </div>
+                    <div class="col-md-1 d-flex align-items-center justify-content-center">
+                        <i class="bi bi-arrow-right fs-4"></i>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="border rounded p-3 mb-2 bg-warning">
+                            <i class="bi bi-robot fs-4"></i>
+                            <div class="small fw-bold">Copilot Agent</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <h6>Flow:</h6>
+                    <ol>
+                        <li><strong>User Request:</strong> Submit task via web interface</li>
+                        <li><strong>Flask Processing:</strong> Validate and prepare request</li>
+                        <li><strong>MCP Integration:</strong> Call appropriate GitHub MCP tool</li>
+                        <li><strong>GitHub API:</strong> Execute GraphQL mutations to assign Copilot</li>
+                        <li><strong>Copilot Activation:</strong> GitHub Copilot coding agent starts working</li>
+                        <li><strong>Real-time Updates:</strong> Track progress and provide feedback</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Project Manager AI Features -->
+<div class="row">
+    <div class="col-12">
+        <div class="ai-analysis">
+            <h5>
+                <i class="bi bi-brain"></i>
+                AI Project Manager Features
+            </h5>
+            <p class="mb-3">
+                The Copilot Manager includes an AI-powered project manager that analyzes Copilot's work and provides intelligent oversight:
+            </p>
+            <div class="row">
+                <div class="col-md-6">
+                    <h6><i class="bi bi-eye"></i> Code Review Analysis</h6>
+                    <ul>
+                        <li>Automated code quality assessment</li>
+                        <li>Security vulnerability detection</li>
+                        <li>Best practices compliance</li>
+                        <li>Performance considerations</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6><i class="bi bi-check-circle"></i> Intelligent Decisions</h6>
+                    <ul>
+                        <li>Automatic approval for simple changes</li>
+                        <li>Request modifications for improvements</li>
+                        <li>Escalate complex issues to human review</li>
+                        <li>Maintain coding standards consistency</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('assignForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = {
+        repository: document.getElementById('repository').value,
+        task_title: document.getElementById('task_title').value,
+        task_description: document.getElementById('task_description').value,
+        auto_create_issue: document.getElementById('auto_create_issue').checked
+    };
+    
+    const resultDiv = document.getElementById('result');
+    resultDiv.style.display = 'block';
+    resultDiv.innerHTML = '<div class="alert alert-info"><i class="bi bi-hourglass-split"></i> Creating task and assigning to Copilot...</div>';
+    
+    try {
+        const response = await fetch('/mcp/create-and-assign', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            let nextStepsHtml = '';
+            if (result.next_steps) {
+                nextStepsHtml = '<h6>Next Steps:</h6><ul>';
+                result.next_steps.forEach(step => {
+                    nextStepsHtml += `<li>${step}</li>`;
+                });
+                nextStepsHtml += '</ul>';
+            }
+            
+            resultDiv.innerHTML = `
+                <div class="alert alert-success">
+                    <h6><i class="bi bi-check-circle"></i> Success!</h6>
+                    <p class="mb-2">${result.message}</p>
+                    ${result.issue_url ? `<p><strong>Issue URL:</strong> <a href="${result.issue_url}" target="_blank">${result.issue_url}</a></p>` : ''}
+                    ${nextStepsHtml}
+                </div>
+            `;
+        } else {
+            resultDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <h6><i class="bi bi-x-circle"></i> Error</h6>
+                    <p class="mb-0">${result.error}</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        resultDiv.innerHTML = `
+            <div class="alert alert-danger">
+                <h6><i class="bi bi-x-circle"></i> Network Error</h6>
+                <p class="mb-0">Failed to communicate with the server: ${error.message}</p>
+            </div>
+        `;
+    }
+});
+</script>
+{% endblock %}

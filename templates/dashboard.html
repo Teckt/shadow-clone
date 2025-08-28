@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Copilot Manager{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="display-6 mb-4">
+            <i class="bi bi-speedometer2"></i>
+            Dashboard
+        </h1>
+    </div>
+</div>
+
+<!-- Stats Overview -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Repositories</h5>
+                        <h2>{{ total_repos }}</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-folder fs-1 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Total Tasks</h5>
+                        <h2>{{ total_tasks }}</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-list-task fs-1 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Active Tasks</h5>
+                        <h2>{{ active_tasks|length }}</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-clock fs-1 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Reviews</h5>
+                        <h2>{{ recent_reviews|length }}</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-git fs-1 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Active Tasks -->
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-robot"></i>
+                    Active Copilot Tasks
+                </h5>
+                <a href="{{ url_for('create_issue') }}" class="btn btn-primary btn-sm">
+                    <i class="bi bi-plus"></i> New Task
+                </a>
+            </div>
+            <div class="card-body">
+                {% if active_tasks %}
+                    {% for task in active_tasks %}
+                        <div class="task-card card mb-3" data-task-id="{{ task.id }}">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="card-title mb-0">
+                                        <a href="{{ task.issue_url }}" target="_blank" class="text-decoration-none">
+                                            {{ task.title }}
+                                        </a>
+                                    </h6>
+                                    <span class="badge status-badge bg-{{ task.status_color }}">
+                                        {{ task.status.replace('_', ' ').upper() }}
+                                    </span>
+                                </div>
+                                
+                                <p class="text-muted small mb-2">
+                                    <i class="bi bi-folder"></i> {{ task.repository.full_name }}
+                                    <span class="ms-2">
+                                        <i class="bi bi-hash"></i>{{ task.issue_number }}
+                                    </span>
+                                    {% if task.pr_number %}
+                                        <span class="ms-2">
+                                            <i class="bi bi-git"></i>
+                                            <a href="{{ task.pr_url }}" target="_blank">#{{ task.pr_number }}</a>
+                                        </span>
+                                    {% endif %}
+                                </p>
+                                
+                                <div class="progress-tracker {{ task.status }} mb-2"></div>
+                                
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">
+                                        Assigned {{ task.assigned_at.strftime('%m/%d/%Y %H:%M') if task.assigned_at else 'N/A' }}
+                                    </small>
+                                    <div>
+                                        <a href="{{ url_for('task_detail', task_id=task.id) }}" class="btn btn-outline-primary btn-sm">
+                                            <i class="bi bi-eye"></i> View
+                                        </a>
+                                        {% if task.pr_number %}
+                                            <a href="{{ url_for('review_pr', task_id=task.id) }}" class="btn btn-outline-success btn-sm">
+                                                <i class="bi bi-git"></i> Review
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-robot fs-1 text-muted"></i>
+                        <h5 class="text-muted mt-2">No active tasks</h5>
+                        <p class="text-muted">Get started by creating a new task for Copilot</p>
+                        <a href="{{ url_for('create_issue') }}" class="btn btn-primary">
+                            <i class="bi bi-plus"></i> Create First Task
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Activity -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-clock-history"></i>
+                    Recent Activity
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if recent_reviews %}
+                    {% for review in recent_reviews %}
+                        <div class="d-flex align-items-start mb-3">
+                            <div class="badge bg-{{ review.action_color }} me-2 mt-1">
+                                {% if review.action == 'APPROVE' %}
+                                    <i class="bi bi-check-circle"></i>
+                                {% elif review.action == 'REQUEST_CHANGES' %}
+                                    <i class="bi bi-x-circle"></i>
+                                {% else %}
+                                    <i class="bi bi-chat"></i>
+                                {% endif %}
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-bold">
+                                    PR #{{ review.pr_number }} {{ review.action.lower().replace('_', ' ') }}
+                                </div>
+                                <div class="text-muted small">
+                                    {{ review.task.repository.full_name }}
+                                </div>
+                                <div class="text-muted small">
+                                    {{ review.created_at.strftime('%m/%d %H:%M') }}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-3">
+                        <i class="bi bi-clock-history fs-2 text-muted"></i>
+                        <p class="text-muted mt-2 mb-0">No recent activity</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-lightning"></i>
+                    Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('add_repository') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-folder-plus"></i> Add Repository
+                    </a>
+                    <a href="{{ url_for('create_issue') }}" class="btn btn-outline-success">
+                        <i class="bi bi-plus-circle"></i> Create Task
+                    </a>
+                    <a href="{{ url_for('tasks') }}" class="btn btn-outline-info">
+                        <i class="bi bi-list-task"></i> View All Tasks
+                    </a>
+                    <a href="{{ url_for('pr_reviews') }}" class="btn btn-outline-warning">
+                        <i class="bi bi-git"></i> Pending Reviews
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Real-time updates for dashboard
+    function updateDashboard() {
+        // Refresh active tasks
+        refreshTaskStatus();
+        
+        // You could also refresh stats here
+        // fetch('/api/dashboard/stats').then(...)
+    }
+    
+    // Update every 30 seconds
+    setInterval(updateDashboard, 30000);
+</script>
+{% endblock %}

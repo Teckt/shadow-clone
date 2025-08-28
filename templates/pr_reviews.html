@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}PR Reviews{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>🔍 Pull Request Reviews</h1>
+    <p class="lead">AI-powered code review analysis and recommendations</p>
+    
+    {% if reviews %}
+        {% for review in reviews %}
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    PR #{{ review.pr_number }} - {{ review.repository.owner }}/{{ review.repository.name }}
+                </h5>
+                <span class="badge badge-{% if review.recommendation == 'approve' %}success{% elif review.recommendation == 'request_changes' %}warning{% else %}info{% endif %}">
+                    {{ review.recommendation|title }}
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <h6>Quality Metrics</h6>
+                        <ul class="list-unstyled">
+                            <li><strong>Code Quality:</strong> {{ review.code_quality_score }}/10</li>
+                            <li><strong>Security:</strong> {{ review.security_score }}/10</li>
+                            <li><strong>Test Coverage:</strong> {{ review.test_coverage }}%</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-9">
+                        <h6>Analysis Summary</h6>
+                        <p>{{ review.analysis_summary }}</p>
+                        
+                        {% if review.suggestions %}
+                        <h6>Suggestions</h6>
+                        <div class="alert alert-info">
+                            {{ review.suggestions }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <small class="text-muted">Reviewed on {{ review.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-info">
+            <h4>No PR Reviews Yet</h4>
+            <p>When Copilot creates pull requests, the AI project manager will automatically analyze them and provide reviews here.</p>
+            <hr>
+            <h6>Sample Review Analysis:</h6>
+            <div class="card">
+                <div class="card-body">
+                    <h6>PR #42: Implement User Authentication System</h6>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <strong>Code Quality:</strong> 8.5/10<br>
+                            <strong>Security:</strong> 9.0/10<br>
+                            <strong>Test Coverage:</strong> 85%
+                        </div>
+                        <div class="col-md-8">
+                            <strong>Analysis:</strong> Excellent implementation with proper security practices. 
+                            Code follows best practices with comprehensive error handling and secure password hashing.
+                            <br><br>
+                            <strong>Suggestions:</strong> Consider adding more detailed docstrings and input sanitization for email fields.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

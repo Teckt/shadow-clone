@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Tasks - Copilot Manager{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="display-6">
+                <i class="bi bi-list-task"></i>
+                Tasks
+            </h1>
+            <a href="{{ url_for('create_issue') }}" class="btn btn-primary">
+                <i class="bi bi-plus"></i> New Task
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Status Filter -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <div class="btn-group" role="group" aria-label="Status filter">
+                    <input type="radio" class="btn-check" name="status-filter" id="filter-all" value="all" checked>
+                    <label class="btn btn-outline-primary" for="filter-all">All</label>
+                    
+                    <input type="radio" class="btn-check" name="status-filter" id="filter-assigned" value="assigned">
+                    <label class="btn btn-outline-info" for="filter-assigned">Assigned</label>
+                    
+                    <input type="radio" class="btn-check" name="status-filter" id="filter-progress" value="in_progress">
+                    <label class="btn btn-outline-warning" for="filter-progress">In Progress</label>
+                    
+                    <input type="radio" class="btn-check" name="status-filter" id="filter-completed" value="completed">
+                    <label class="btn btn-outline-success" for="filter-completed">Completed</label>
+                </div>
+            </div>
+            <div class="col-md-6 text-end">
+                <button class="btn btn-outline-secondary" onclick="refreshAllTasks()">
+                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tasks List -->
+{% if tasks %}
+    <div class="row" id="tasks-container">
+        {% for task in tasks %}
+            <div class="col-lg-6 mb-3 task-item" data-status="{{ task.status }}" data-task-id="{{ task.id }}">
+                <div class="card task-card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="card-title mb-0">
+                                <a href="{{ task.issue_url }}" target="_blank" class="text-decoration-none">
+                                    {{ task.title }}
+                                </a>
+                            </h6>
+                            <span class="badge status-badge bg-{{ task.status_color }}">
+                                {{ task.status.replace('_', ' ').upper() }}
+                            </span>
+                        </div>
+                        
+                        <p class="text-muted small mb-2">
+                            <i class="bi bi-folder"></i> {{ task.repository.full_name }}
+                            <span class="ms-2">
+                                <i class="bi bi-hash"></i>{{ task.issue_number }}
+                            </span>
+                            {% if task.pr_number %}
+                                <span class="ms-2">
+                                    <i class="bi bi-git"></i>
+                                    <a href="{{ task.pr_url }}" target="_blank">#{{ task.pr_number }}</a>
+                                </span>
+                            {% endif %}
+                        </p>
+                        
+                        {% if task.description %}
+                            <p class="card-text small">{{ task.description[:100] }}{% if task.description|length > 100 %}...{% endif %}</p>
+                        {% endif %}
+                        
+                        <div class="progress-tracker {{ task.status }} mb-3"></div>
+                        
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                <i class="bi bi-clock"></i>
+                                {% if task.assigned_at %}
+                                    Assigned {{ task.assigned_at.strftime('%m/%d/%Y') }}
+                                {% else %}
+                                    Created {{ task.created_at.strftime('%m/%d/%Y') }}
+                                {% endif %}
+                            </small>
+                            <div>
+                                <a href="{{ url_for('task_detail', task_id=task.id) }}" class="btn btn-outline-primary btn-sm">
+                                    <i class="bi bi-eye"></i> View
+                                </a>
+                                {% if task.pr_number and task.status in ['in_progress', 'ready_for_review'] %}
+                                    <a href="{{ url_for('review_pr', task_id=task.id) }}" class="btn btn-outline-success btn-sm">
+                                        <i class="bi bi-git"></i> Review
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="text-center py-5">
+        <i class="bi bi-list-task fs-1 text-muted"></i>
+        <h3 class="text-muted mt-3">No tasks yet</h3>
+        <p class="text-muted">Create your first task to get started with Copilot</p>
+        <a href="{{ url_for('create_issue') }}" class="btn btn-primary btn-lg">
+            <i class="bi bi-plus"></i> Create First Task
+        </a>
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Filter tasks by status
+document.querySelectorAll('input[name="status-filter"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const filterValue = this.value;
+        const taskItems = document.querySelectorAll('.task-item');
+        
+        taskItems.forEach(item => {
+            if (filterValue === 'all' || item.dataset.status === filterValue) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    });
+});
+
+// Refresh all tasks
+function refreshAllTasks() {
+    const button = event.target;
+    const originalText = button.innerHTML;
+    
+    button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Refreshing...';
+    button.disabled = true;
+    
+    // Refresh each task status
+    const taskCards = document.querySelectorAll('[data-task-id]');
+    let completed = 0;
+    
+    if (taskCards.length === 0) {
+        // No tasks to refresh
+        button.innerHTML = originalText;
+        button.disabled = false;
+        return;
+    }
+    
+    taskCards.forEach(card => {
+        const taskId = card.dataset.taskId;
+        fetch(`/api/tasks/${taskId}/status`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateTaskCard(card, data.status);
+                }
+            })
+            .catch(console.error)
+            .finally(() => {
+                completed++;
+                if (completed === taskCards.length) {
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                }
+            });
+    });
+}
+
+// Auto-refresh every minute
+setInterval(() => {
+    const taskCards = document.querySelectorAll('[data-task-id]');
+    taskCards.forEach(card => {
+        const taskId = card.dataset.taskId;
+        fetch(`/api/tasks/${taskId}/status`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateTaskCard(card, data.status);
+                }
+            })
+            .catch(console.error);
+    });
+}, 60000);
+</script>
+{% endblock %}

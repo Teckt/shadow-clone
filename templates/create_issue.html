@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+
+{% block title %}Create Issue - Copilot Manager{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title mb-0">
+                    <i class="bi bi-plus-circle"></i>
+                    Create New Task
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="repository_id" class="form-label">Repository</label>
+                        <select class="form-select" id="repository_id" name="repository_id" required>
+                            <option value="">Select a repository...</option>
+                            {% for repo in repositories %}
+                                <option value="{{ repo.id }}" {% if not repo.copilot_enabled %}data-disabled="true"{% endif %}>
+                                    {{ repo.full_name }}
+                                    {% if not repo.copilot_enabled %} (Copilot Disabled){% endif %}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        {% if repositories %}
+                            <div class="form-text">
+                                <i class="bi bi-info-circle"></i>
+                                Only repositories with Copilot enabled can have tasks assigned to the coding agent
+                            </div>
+                        {% else %}
+                            <div class="form-text text-warning">
+                                <i class="bi bi-exclamation-triangle"></i>
+                                No repositories found. <a href="{{ url_for('add_repository') }}">Add a repository</a> first.
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Task Title</label>
+                        <input type="text" class="form-control" id="title" name="title" 
+                               placeholder="e.g., Add unit tests for user authentication" required>
+                        <div class="form-text">Be specific and clear about what needs to be done</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="body" class="form-label">Task Description</label>
+                        <textarea class="form-control" id="body" name="body" rows="8" 
+                                  placeholder="Describe the task in detail. Include:
+- What needs to be implemented or fixed
+- Acceptance criteria
+- Any specific requirements or constraints
+- Examples or references if helpful
+
+The more detailed and clear your description, the better Copilot can understand and implement your requirements."></textarea>
+                        <div class="form-text">
+                            <strong>Pro Tips:</strong>
+                            <ul class="mb-0 mt-1">
+                                <li>Be specific about file locations and naming conventions</li>
+                                <li>Include examples of expected behavior</li>
+                                <li>Mention any dependencies or prerequisites</li>
+                                <li>Specify testing requirements</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="assign_to_copilot" name="assign_to_copilot" checked>
+                            <label class="form-check-label" for="assign_to_copilot">
+                                <i class="bi bi-robot"></i>
+                                Assign to Copilot immediately after creation
+                            </label>
+                        </div>
+                        <div class="form-text">
+                            If unchecked, the issue will be created but not assigned to Copilot. 
+                            You can assign it later from the issues list.
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <h6><i class="bi bi-lightbulb"></i> Best Practices for Copilot Tasks</h6>
+                        <ul class="mb-0">
+                            <li><strong>Single responsibility:</strong> Focus on one specific task or feature</li>
+                            <li><strong>Clear requirements:</strong> Include acceptance criteria and examples</li>
+                            <li><strong>Documentation:</strong> Ask Copilot to document its code clearly</li>
+                            <li><strong>Testing:</strong> Request appropriate tests for the implementation</li>
+                            <li><strong>Code style:</strong> Mention any specific coding standards to follow</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary" {% if not repositories %}disabled{% endif %}>
+                            <i class="bi bi-plus"></i> Create Task
+                        </button>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Back to Dashboard
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Task Templates -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-file-text"></i>
+                    Task Templates
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Click on a template to auto-fill the task description:</p>
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <button type="button" class="btn btn-outline-primary w-100" onclick="fillTemplate('bug-fix')">
+                            <i class="bi bi-bug"></i> Bug Fix
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <button type="button" class="btn btn-outline-success w-100" onclick="fillTemplate('feature')">
+                            <i class="bi bi-plus-square"></i> New Feature
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <button type="button" class="btn btn-outline-info w-100" onclick="fillTemplate('test')">
+                            <i class="bi bi-check-circle"></i> Add Tests
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <button type="button" class="btn btn-outline-warning w-100" onclick="fillTemplate('refactor')">
+                            <i class="bi bi-gear"></i> Refactoring
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const templates = {
+    'bug-fix': {
+        title: 'Fix: [Brief description of the bug]',
+        body: `## Bug Description
+[Describe the bug clearly and concisely]
+
+## Steps to Reproduce
+1. [First step]
+2. [Second step]
+3. [See error]
+
+## Expected Behavior
+[What should happen]
+
+## Actual Behavior
+[What actually happens]
+
+## Acceptance Criteria
+- [ ] Bug is fixed and no longer reproducible
+- [ ] Existing functionality is not broken
+- [ ] Unit tests are added to prevent regression
+- [ ] Code is properly documented
+
+## Additional Context
+[Add any other context about the problem here]`
+    },
+    'feature': {
+        title: 'Feature: [Brief description of the feature]',
+        body: `## Feature Description
+[Describe the feature you want to implement]
+
+## Requirements
+- [Requirement 1]
+- [Requirement 2]
+- [Requirement 3]
+
+## Acceptance Criteria
+- [ ] Feature is implemented according to requirements
+- [ ] User interface is intuitive (if applicable)
+- [ ] Feature is properly tested
+- [ ] Documentation is updated
+- [ ] Code follows project conventions
+
+## Implementation Notes
+[Any specific implementation details or constraints]
+
+## Examples/Mockups
+[Include examples, mockups, or references if available]`
+    },
+    'test': {
+        title: 'Tests: Add comprehensive tests for [component/feature]',
+        body: `## Testing Requirements
+[Describe what needs to be tested]
+
+## Test Coverage Goals
+- [ ] Unit tests for core functionality
+- [ ] Integration tests for component interactions
+- [ ] Edge cases and error conditions
+- [ ] Performance tests (if applicable)
+
+## Acceptance Criteria
+- [ ] Test coverage is above 80%
+- [ ] All tests pass
+- [ ] Tests are well-documented and maintainable
+- [ ] CI/CD pipeline runs tests successfully
+
+## Specific Test Cases
+1. [Test case 1]
+2. [Test case 2]
+3. [Test case 3]
+
+## Tools and Frameworks
+[Specify preferred testing tools or frameworks]`
+    },
+    'refactor': {
+        title: 'Refactor: [Brief description of refactoring]',
+        body: `## Refactoring Goals
+[Explain why this refactoring is needed]
+
+## Current Issues
+- [Issue 1]
+- [Issue 2]
+- [Issue 3]
+
+## Proposed Changes
+- [Change 1]
+- [Change 2]
+- [Change 3]
+
+## Acceptance Criteria
+- [ ] Code is more maintainable and readable
+- [ ] Performance is maintained or improved
+- [ ] All existing tests continue to pass
+- [ ] No breaking changes to public APIs
+- [ ] Code follows updated conventions
+
+## Guidelines
+- Maintain backward compatibility
+- Update documentation as needed
+- Follow established coding standards
+- Ensure thorough testing`
+    }
+};
+
+function fillTemplate(templateKey) {
+    const template = templates[templateKey];
+    if (template) {
+        document.getElementById('title').value = template.title;
+        document.getElementById('body').value = template.body;
+        
+        // Scroll to form
+        document.querySelector('form').scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Disable repositories without Copilot
+document.addEventListener('DOMContentLoaded', function() {
+    const select = document.getElementById('repository_id');
+    const options = select.querySelectorAll('option[data-disabled="true"]');
+    
+    options.forEach(option => {
+        option.disabled = true;
+        option.style.color = '#6c757d';
+    });
+});
+</script>
+{% endblock %}

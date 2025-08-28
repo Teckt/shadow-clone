@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}{{ repository.full_name }} Issues - Copilot Manager{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="display-6">
+                    <i class="bi bi-folder"></i>
+                    {{ repository.full_name }}
+                </h1>
+                <p class="text-muted">
+                    {% if repository.description %}{{ repository.description }}{% else %}No description available{% endif %}
+                </p>
+            </div>
+            <div>
+                <a href="{{ url_for('create_issue') }}?repo={{ repository.id }}" class="btn btn-primary">
+                    <i class="bi bi-plus"></i> New Issue
+                </a>
+                <a href="{{ repository.github_url }}" target="_blank" class="btn btn-outline-secondary">
+                    <i class="bi bi-github"></i> View on GitHub
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Repository Status -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            {% if repository.copilot_enabled %}
+                                <span class="badge bg-success fs-6">
+                                    <i class="bi bi-robot"></i> Copilot Enabled
+                                </span>
+                            {% else %}
+                                <span class="badge bg-warning fs-6">
+                                    <i class="bi bi-exclamation-triangle"></i> Copilot Disabled
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <div class="fs-4 fw-bold text-primary">{{ issues|length }}</div>
+                            <div class="text-muted small">Open Issues</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <div class="fs-4 fw-bold text-info">{{ task_by_issue|length }}</div>
+                            <div class="text-muted small">Assigned to Copilot</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            {% if repository.private %}
+                                <span class="badge bg-secondary">
+                                    <i class="bi bi-lock"></i> Private
+                                </span>
+                            {% else %}
+                                <span class="badge bg-info">
+                                    <i class="bi bi-globe"></i> Public
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Issues List -->
+{% if issues %}
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-list"></i>
+                Issues
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="list-group list-group-flush">
+                {% for issue in issues %}
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <div class="d-flex align-items-center mb-2">
+                                    <h6 class="mb-0 me-2">
+                                        <a href="{{ issue.html_url }}" target="_blank" class="text-decoration-none">
+                                            #{{ issue.number }} {{ issue.title }}
+                                        </a>
+                                    </h6>
+                                    
+                                    <!-- Issue State -->
+                                    {% if issue.state == 'open' %}
+                                        <span class="badge bg-success me-2">
+                                            <i class="bi bi-circle-fill"></i> Open
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary me-2">
+                                            <i class="bi bi-check-circle-fill"></i> Closed
+                                        </span>
+                                    {% endif %}
+                                    
+                                    <!-- Copilot Assignment Status -->
+                                    {% if issue.number in task_by_issue %}
+                                        {% set task = task_by_issue[issue.number] %}
+                                        <span class="badge bg-{{ task.status_color }}">
+                                            <i class="bi bi-robot"></i> {{ task.status.replace('_', ' ').title() }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                
+                                {% if issue.body %}
+                                    <p class="text-muted small mb-2">{{ issue.body[:150] }}{% if issue.body|length > 150 %}...{% endif %}</p>
+                                {% endif %}
+                                
+                                <small class="text-muted">
+                                    <i class="bi bi-person"></i> {{ issue.user.login }}
+                                    <span class="ms-2">
+                                        <i class="bi bi-clock"></i> {{ issue.created_at[:10] }}
+                                    </span>
+                                    {% if issue.comments > 0 %}
+                                        <span class="ms-2">
+                                            <i class="bi bi-chat"></i> {{ issue.comments }}
+                                        </span>
+                                    {% endif %}
+                                </small>
+                            </div>
+                            
+                            <div class="text-end">
+                                {% if issue.number in task_by_issue %}
+                                    {% set task = task_by_issue[issue.number] %}
+                                    <a href="{{ url_for('task_detail', task_id=task.id) }}" class="btn btn-outline-primary btn-sm">
+                                        <i class="bi bi-eye"></i> View Task
+                                    </a>
+                                    {% if task.pr_number %}
+                                        <a href="{{ task.pr_url }}" target="_blank" class="btn btn-outline-success btn-sm">
+                                            <i class="bi bi-git"></i> PR #{{ task.pr_number }}
+                                        </a>
+                                    {% endif %}
+                                {% else %}
+                                    {% if repository.copilot_enabled and issue.state == 'open' %}
+                                        <a href="{{ url_for('assign_issue_to_copilot_route', repo_id=repository.id, issue_number=issue.number) }}" 
+                                           class="btn btn-success btn-sm">
+                                            <i class="bi bi-robot"></i> Assign to Copilot
+                                        </a>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+{% else %}
+    <div class="text-center py-5">
+        <i class="bi bi-list fs-1 text-muted"></i>
+        <h3 class="text-muted mt-3">No issues found</h3>
+        <p class="text-muted">This repository doesn't have any open issues yet.</p>
+        <a href="{{ url_for('create_issue') }}?repo={{ repository.id }}" class="btn btn-primary">
+            <i class="bi bi-plus"></i> Create First Issue
+        </a>
+    </div>
+{% endif %}
+{% endblock %}

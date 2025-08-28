@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Add Repository - Copilot Manager{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title mb-0">
+                    <i class="bi bi-folder-plus"></i>
+                    Add Repository
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="owner" class="form-label">Repository Owner</label>
+                        <input type="text" class="form-control" id="owner" name="owner" 
+                               placeholder="e.g., microsoft, openai, your-username" required>
+                        <div class="form-text">The GitHub username or organization name</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Repository Name</label>
+                        <input type="text" class="form-control" id="name" name="name" 
+                               placeholder="e.g., vscode, copilot, my-project" required>
+                        <div class="form-text">The repository name (without the owner)</div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="alert alert-info">
+                            <h6><i class="bi bi-info-circle"></i> What happens next?</h6>
+                            <ul class="mb-0">
+                                <li>We'll verify the repository exists and you have access</li>
+                                <li>Check if GitHub Copilot coding agent is enabled</li>
+                                <li>Add it to your managed repositories list</li>
+                                <li>You can then create tasks and assign them to Copilot</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-plus"></i> Add Repository
+                        </button>
+                        <a href="{{ url_for('repositories') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Back
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Repository Search Helper -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-search"></i>
+                    Search GitHub Repositories
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <input type="text" class="form-control" id="search-input" 
+                           placeholder="Search for repositories on GitHub...">
+                </div>
+                <div id="search-results"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let searchTimeout;
+
+document.getElementById('search-input').addEventListener('input', function(e) {
+    const query = e.target.value.trim();
+    
+    // Clear previous timeout
+    if (searchTimeout) {
+        clearTimeout(searchTimeout);
+    }
+    
+    // Clear results if query is too short
+    if (query.length < 3) {
+        document.getElementById('search-results').innerHTML = '';
+        return;
+    }
+    
+    // Debounce search
+    searchTimeout = setTimeout(() => {
+        searchRepositories(query);
+    }, 500);
+});
+
+function searchRepositories(query) {
+    const resultsDiv = document.getElementById('search-results');
+    resultsDiv.innerHTML = '<div class="text-center"><div class="spinner-border spinner-border-sm" role="status"></div> Searching...</div>';
+    
+    fetch(`/api/repositories/search?q=${encodeURIComponent(query)}`)
+        .then(response => response.json())
+        .then(data => {
+            displaySearchResults(data.repositories || []);
+        })
+        .catch(error => {
+            console.error('Search error:', error);
+            resultsDiv.innerHTML = '<div class="alert alert-warning">Search failed. Please try again.</div>';
+        });
+}
+
+function displaySearchResults(repositories) {
+    const resultsDiv = document.getElementById('search-results');
+    
+    if (repositories.length === 0) {
+        resultsDiv.innerHTML = '<div class="text-muted">No repositories found</div>';
+        return;
+    }
+    
+    let html = '<div class="list-group">';
+    repositories.forEach(repo => {
+        html += `
+            <div class="list-group-item list-group-item-action">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="mb-1">${repo.full_name}</h6>
+                        <p class="mb-1 text-muted small">${repo.description || 'No description'}</p>
+                        <small class="text-muted">
+                            <i class="bi bi-star"></i> ${repo.stargazers_count || 0}
+                            <span class="ms-2"><i class="bi bi-diagram-3"></i> ${repo.forks_count || 0}</span>
+                        </small>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm" 
+                            onclick="fillRepository('${repo.owner.login}', '${repo.name}')">
+                        <i class="bi bi-plus"></i> Use
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    html += '</div>';
+    
+    resultsDiv.innerHTML = html;
+}
+
+function fillRepository(owner, name) {
+    document.getElementById('owner').value = owner;
+    document.getElementById('name').value = name;
+    
+    // Scroll to form
+    document.querySelector('.card').scrollIntoView({ behavior: 'smooth' });
+}
+</script>
+{% endblock %}

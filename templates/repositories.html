@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}Repositories - Copilot Manager{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="display-6">
+                <i class="bi bi-folder"></i>
+                Repositories
+            </h1>
+            <a href="{{ url_for('add_repository') }}" class="btn btn-primary">
+                <i class="bi bi-plus"></i> Add Repository
+            </a>
+        </div>
+    </div>
+</div>
+
+{% if repositories %}
+    <div class="row">
+        {% for repo in repositories %}
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h5 class="card-title mb-1">
+                                    <a href="{{ repo.github_url }}" target="_blank" class="text-decoration-none">
+                                        {{ repo.full_name }}
+                                    </a>
+                                </h5>
+                                {% if repo.description %}
+                                    <p class="text-muted small mb-2">{{ repo.description }}</p>
+                                {% endif %}
+                            </div>
+                            <div class="text-end">
+                                {% if repo.copilot_enabled %}
+                                    <span class="badge bg-success">
+                                        <i class="bi bi-robot"></i> Copilot Enabled
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-warning">
+                                        <i class="bi bi-exclamation-triangle"></i> Copilot Disabled
+                                    </span>
+                                {% endif %}
+                                <br>
+                                {% if repo.private %}
+                                    <span class="badge bg-secondary mt-1">
+                                        <i class="bi bi-lock"></i> Private
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-info mt-1">
+                                        <i class="bi bi-globe"></i> Public
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <div class="text-center">
+                                    <div class="fs-4 fw-bold text-primary">{{ repo.tasks|length }}</div>
+                                    <div class="text-muted small">Tasks</div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-center">
+                                    <div class="fs-4 fw-bold text-success">
+                                        {{ repo.tasks|selectattr('status', 'equalto', 'completed')|list|length }}
+                                    </div>
+                                    <div class="text-muted small">Completed</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <a href="{{ url_for('repository_issues', repo_id=repo.id) }}" class="btn btn-outline-primary btn-sm flex-fill">
+                                <i class="bi bi-list"></i> Issues
+                            </a>
+                            <a href="{{ repo.github_url }}" target="_blank" class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-github"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <small class="text-muted">
+                            <i class="bi bi-clock"></i>
+                            Added {{ repo.created_at.strftime('%m/%d/%Y') }}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="text-center py-5">
+        <i class="bi bi-folder2-open fs-1 text-muted"></i>
+        <h3 class="text-muted mt-3">No repositories added yet</h3>
+        <p class="text-muted">Start by adding a repository to manage with Copilot</p>
+        <a href="{{ url_for('add_repository') }}" class="btn btn-primary btn-lg">
+            <i class="bi bi-plus"></i> Add Your First Repository
+        </a>
+    </div>
+{% endif %}
+{% endblock %}
