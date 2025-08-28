@@ -97,6 +97,53 @@
     </div>
 </div>
 
+<!-- Test Integration Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-success">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-check-circle"></i>
+                    Test Integration: Issue #1 Validation
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-3">
+                    <strong>Current Test Issue:</strong> 
+                    <a href="https://github.com/Teckt/shadow-clone/issues/1" target="_blank" class="text-decoration-none">
+                        Teckt/shadow-clone #1 - Test: GitHub Copilot Manager Integration
+                    </a>
+                </p>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="d-grid gap-2">
+                            <button id="setupTestBtn" class="btn btn-outline-success btn-sm">
+                                <i class="bi bi-gear"></i> Setup Test Repository
+                            </button>
+                            <button id="validateWorkflowBtn" class="btn btn-outline-info btn-sm">
+                                <i class="bi bi-check2-square"></i> Validate Workflow
+                            </button>
+                            <button id="testIntegrationBtn" class="btn btn-success btn-sm">
+                                <i class="bi bi-play-circle"></i> Run Integration Test
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div id="testResult" style="display: none;" class="mt-2"></div>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <small class="text-muted">
+                        <strong>Note:</strong> This validates the complete MCP GitHub Copilot Manager integration workflow using the real test issue #1.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- MCP Tools Reference -->
 <div class="row mb-4">
     <div class="col-12">
@@ -309,6 +356,123 @@ document.getElementById('assignForm').addEventListener('submit', async function(
                 <p class="mb-0">Failed to communicate with the server: ${error.message}</p>
             </div>
         `;
+    }
+});
+
+// Test Integration Functions
+document.getElementById('setupTestBtn').addEventListener('click', async function() {
+    const btn = this;
+    const resultDiv = document.getElementById('testResult');
+    
+    btn.disabled = true;
+    resultDiv.style.display = 'block';
+    resultDiv.innerHTML = '<div class="alert alert-info alert-sm"><i class="bi bi-hourglass-split"></i> Setting up test repository...</div>';
+    
+    try {
+        const response = await fetch('/mcp/setup-test-repository', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            resultDiv.innerHTML = `
+                <div class="alert alert-success alert-sm">
+                    <strong>✓ Setup Complete!</strong><br>
+                    Repository ID: ${result.setup_results.repository_id}<br>
+                    Task ID: ${result.setup_results.task_id}
+                </div>
+            `;
+        } else {
+            resultDiv.innerHTML = `<div class="alert alert-danger alert-sm">Setup failed: ${result.error}</div>`;
+        }
+    } catch (error) {
+        resultDiv.innerHTML = `<div class="alert alert-danger alert-sm">Network error: ${error.message}</div>`;
+    } finally {
+        btn.disabled = false;
+    }
+});
+
+document.getElementById('validateWorkflowBtn').addEventListener('click', async function() {
+    const btn = this;
+    const resultDiv = document.getElementById('testResult');
+    
+    btn.disabled = true;
+    resultDiv.style.display = 'block';
+    resultDiv.innerHTML = '<div class="alert alert-info alert-sm"><i class="bi bi-hourglass-split"></i> Validating workflow...</div>';
+    
+    try {
+        const response = await fetch('/mcp/validate-workflow');
+        const result = await response.json();
+        
+        if (result.success) {
+            const validation = result.validation_results;
+            const status = validation.integration_ready ? 'success' : 'warning';
+            
+            resultDiv.innerHTML = `
+                <div class="alert alert-${status} alert-sm">
+                    <strong>Validation Results:</strong><br>
+                    Repository: ${validation.repository_exists ? '✓' : '✗'}<br>
+                    Task: ${validation.task_exists ? '✓' : '✗'}<br>
+                    Status: ${validation.task_status || 'N/A'}<br>
+                    Ready: ${validation.integration_ready ? '✓' : '✗'}
+                </div>
+            `;
+        } else {
+            resultDiv.innerHTML = `<div class="alert alert-danger alert-sm">Validation failed: ${result.error}</div>`;
+        }
+    } catch (error) {
+        resultDiv.innerHTML = `<div class="alert alert-danger alert-sm">Network error: ${error.message}</div>`;
+    } finally {
+        btn.disabled = false;
+    }
+});
+
+document.getElementById('testIntegrationBtn').addEventListener('click', async function() {
+    const btn = this;
+    const resultDiv = document.getElementById('testResult');
+    
+    btn.disabled = true;
+    resultDiv.style.display = 'block';
+    resultDiv.innerHTML = '<div class="alert alert-info alert-sm"><i class="bi bi-hourglass-split"></i> Running integration test...</div>';
+    
+    try {
+        const response = await fetch('/mcp/test-integration', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            const workflow = result.workflow_status;
+            let nextStepsHtml = '';
+            if (result.test_results.next_steps) {
+                nextStepsHtml = '<br><strong>Next Steps:</strong><ul class="small mb-0">';
+                result.test_results.next_steps.forEach(step => {
+                    nextStepsHtml += `<li>${step}</li>`;
+                });
+                nextStepsHtml += '</ul>';
+            }
+            
+            resultDiv.innerHTML = `
+                <div class="alert alert-success alert-sm">
+                    <strong>✓ Integration Test Passed!</strong><br>
+                    Issue Retrieved: ${workflow.issue_retrieved ? '✓' : '✗'}<br>
+                    Copilot Assigned: ${workflow.copilot_assigned ? '✓' : '✗'}<br>
+                    Database Updated: ${workflow.database_updated ? '✓' : '✗'}<br>
+                    Session: ${result.test_results.session_id}
+                    ${nextStepsHtml}
+                </div>
+            `;
+        } else {
+            resultDiv.innerHTML = `<div class="alert alert-danger alert-sm">Integration test failed: ${result.error}</div>`;
+        }
+    } catch (error) {
+        resultDiv.innerHTML = `<div class="alert alert-danger alert-sm">Network error: ${error.message}</div>`;
+    } finally {
+        btn.disabled = false;
     }
 });
 </script>
