@@ -1,3 +1,0 @@
-{
-  "instructions": "Analyze this Shadow Clone project repository and create GitHub issues for self-improvement. Focus on: 1) Adding GitHub App support for webhooks so it can react to repository events automatically, 2) Improving the agent coordination system for better task delegation, 3) Adding more sophisticated code review capabilities with security scanning, 4) Creating a better dashboard UI with real-time monitoring, 5) Adding performance monitoring and logging. Create detailed, actionable issues that GitHub Copilot coding agent can work on. Each issue should have clear acceptance criteria and implementation guidance."
-}

@@ -1,3 +1,0 @@
-{
-  "instructions": "Create a new GitHub repository called 'shadow-clone-v2' as an improved version of the current Shadow Clone project. Analyze the existing codebase and implement the following enhancements: 1) Add GitHub App support for webhook handling, 2) Create a React-based dashboard with real-time monitoring, 3) Implement advanced code review with security scanning, 4) Add agent performance metrics and logging, 5) Create a plugin system for custom agents. After creating the repository, generate 10 detailed GitHub issues for features that GitHub Copilot coding agent can implement. Make this a complete upgrade of the current system."
-}
